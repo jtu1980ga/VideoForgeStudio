@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VideoForge Studio - Lyric & Video Creator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body { background-color: #0b0f17; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    .glass-card { background: rgba(18, 24, 38, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="h-14 border-b border-slate-800 bg-slate-950/80 px-4 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-play-circle text-indigo-500 text-2xl"></i>
+      <span class="font-black text-lg tracking-wider text-white">VideoForge <span class="text-indigo-400 font-light">Studio</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btnPexelsModal" class="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 transition flex items-center gap-1.5">
+        <i class="fa-solid fa-camera"></i> Pexels API Key
+      </button>
+      <button id="btnExportVideo" class="text-xs px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/30">
+        <i class="fa-solid fa-download"></i> Export MP4
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Studio -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+    <!-- Left Controls Panel -->
+    <aside class="w-full lg:w-[420px] bg-slate-900 border-r border-slate-800 flex flex-col h-[calc(100vh-3.5rem)] overflow-y-auto custom-scroll p-4 space-y-6">
+      
+      <!-- Step 1: Background Footage -->
+      <section class="space-y-3">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <i class="fa-solid fa-film text-indigo-400"></i> Step 1: Background Footage
+        </h2>
+        
+        <div class="grid grid-cols-3 gap-2">
+          <button class="ratio-btn px-2 py-1.5 rounded bg-indigo-600 text-white text-xs font-medium" data-w="1080" data-h="1920">9:16 Vertical</button>
+          <button class="ratio-btn px-2 py-1.5 rounded bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700" data-w="1920" data-h="1080">16:9 Wide</button>
+          <button class="ratio-btn px-2 py-1.5 rounded bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700" data-w="1080" data-h="1080">1:1 Square</button>
+        </div>
+
+        <div class="flex gap-2">
+          <input type="text" id="pexelsQuery" placeholder="Search Pexels stock video..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500" />
+          <button id="btnSearchPexels" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-medium">Search</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="flex-1 text-center py-2 px-3 border border-dashed border-slate-700 hover:border-indigo-500 rounded-lg cursor-pointer transition text-xs text-slate-400">
+            <i class="fa-solid fa-upload mr-1"></i> Upload Video File
+            <input type="file" id="videoUpload" accept="video/mp4,video/webm" class="hidden" />
+          </label>
+        </div>
+
+        <div id="stockGrid" class="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto custom-scroll p-1 bg-slate-950/50 rounded-lg border border-slate-800"></div>
+      </section>
+
+      <hr class="border-slate-800" />
+
+      <!-- Step 2: Audio Engine -->
+      <section class="space-y-3">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+          <i class="fa-solid fa-music text-indigo-400"></i> Step 2: Audio & Song Sync
+        </h2>
+
+        <label class="flex items-center justify-center gap-2 w-full py-2.5 px-3 border border-indigo-500/40 bg-indigo-950/20 hover:bg-indigo-950/40 rounded-lg cursor-pointer transition text-xs font-medium text-indigo-300">
+          <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Upload Song (.mp3 / .wav)
+          <input type="file" id="audioUpload" accept="audio/*" class="hidden" />
+        </label>
+        <div id="audioFileName" class="text-xs text-slate-400 truncate text-center hidden"></div>
+
+        <div class="flex items-center justify-between gap-3 bg-slate-950/40 p-2.5 rounded-lg border border-slate-800 text-xs">
+          <span class="text-slate-400">Visualizer Waveform</span>
+          <input type="checkbox" id="chkShowVisualizer" checked class="accent-indigo-600 cursor-pointer" />
+        </div>
+      </section>
+
+      <hr class="border-slate-800" />
+
+      <!-- Step 3: Studio Mode Switcher -->
+      <section class="space-y-3">
+        <div class="flex rounded-lg bg-slate-950 p-1 border border-slate-800">
+          <button id="tabModeLyrics" class="flex-1 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition">
+            <i class="fa-solid fa-microphone mr-1"></i> Karaoke & Lyrics
+          </button>
+          <button id="tabModeCTA" class="flex-1 py-1.5 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition">
+            <i class="fa-solid fa-bullhorn mr-1"></i> Call to Action
+          </button>
+        </div>
+
+        <!-- Mode A: Karaoke & Lyrics -->
+        <div id="panelLyrics" class="space-y-3">
+          
+          <!-- Groq Whisper AI Sync Panel -->
+          <div class="p-3 bg-gradient-to-br from-indigo-950/60 to-purple-950/40 border border-indigo-500/30 rounded-xl space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt text-yellow-400"></i> AI Timestamp Generator (Groq Whisper)
+              </span>
+            </div>
+            
+            <input type="password" id="groqApiKey" placeholder="Paste Groq API Key (gsk_...)" class="w-full bg-slate-900/90 border border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400" />
+            
+            <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
+              <input type="checkbox" id="chkSaveKey" checked class="accent-indigo-500 rounded" />
+              Remember key locally in this browser
+            </label>
+
+            <button id="btnAiTranscribe" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-md text-xs font-semibold text-white transition flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/30">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate LRC with AI
+            </button>
+            <div id="aiStatus" class="text-[11px] text-slate-400 min-h-[16px]"></div>
+          </div>
+
+          <!-- Lyrics Textarea -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>Lyrics or [mm:ss.xx] Timestamps</span>
+              <button id="btnStampLine" class="text-[11px] text-indigo-400 hover:underline">Stamp Line Now</button>
+            </div>
+            <textarea id="lyricsInput" rows="6" placeholder="Paste lyrics or let AI generate them above..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 custom-scroll"></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Karaoke Style</label>
+              <select id="selLyricStyle" class="w-full bg-slate-800 border border-slate-700 rounded-md p-1.5 text-white">
+                <option value="sweep">Glowing Sweep Wipe</option>
+                <option value="bounce">Bouncing Ball</option>
+                <option value="neon">Neon Glass Card</option>
+                <option value="minimal">Minimal Subtitle</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Position</label>
+              <select id="selLyricPos" class="w-full bg-slate-800 border border-slate-700 rounded-md p-1.5 text-white">
+                <option value="bottom">Bottom (Standard)</option>
+                <option value="center">Center Focus</option>
+                <option value="top">Top Banner</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode B: Call To Action Overlay -->
+        <div id="panelCTA" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Headline Text</label>
+            <input type="text" id="ctaHeadline" value="UP TO 50% OFF TODAY" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Subtitle / Details</label>
+            <input type="text" id="ctaSubtitle" value="Visit website now - link in bio" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Button Text</label>
+              <input type="text" id="ctaButton" value="SHOP NOW" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Theme Accent</label>
+              <input type="color" id="ctaColor" value="#6366f1" class="w-full h-8 bg-slate-800 border border-slate-700 rounded-lg p-0.5 cursor-pointer" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- Center Canvas Preview -->
+    <main class="flex-1 bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      
+      <!-- Live Aspect Canvas -->
+      <div id="canvasWrapper" class="relative max-h-[78vh] flex items-center justify-center shadow-2xl rounded-xl overflow-hidden border border-slate-800">
+        <canvas id="previewCanvas" class="max-h-[78vh] max-w-full object-contain rounded-xl"></canvas>
+      </div>
+
+      <!-- Playback Bar -->
+      <div class="w-full max-w-xl mt-4 flex items-center gap-3 px-4 py-2 bg-slate-900/90 backdrop-blur rounded-full border border-slate-800 text-xs">
+        <button id="btnPlayPause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-play" id="playIcon"></i>
+        </button>
+        <span id="timeDisplay" class="font-mono text-slate-400">00:00 / 00:00</span>
+        <input type="range" id="seekSlider" min="0" max="100" value="0" class="flex-1 accent-indigo-500 cursor-pointer" />
+        <button id="btnRestart" class="text-slate-400 hover:text-white" title="Restart"><i class="fa-solid fa-rotate-left"></i></button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Exporting Progress Modal -->
+  <div id="exportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="glass-card p-6 rounded-2xl max-w-sm w-full space-y-4 text-center">
+      <div class="w-12 h-12 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      </div>
+      <h3 class="text-base font-bold text-white">Rendering MP4 Video</h3>
+      <p class="text-xs text-slate-400">Recording video, animated overlays, and audio track together...</p>
+      <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+        <div id="exportProgressBar" class="bg-indigo-500 h-full w-0 transition-all duration-300"></div>
+      </div>
+      <button id="btnCancelExport" class="text-xs text-slate-400 hover:text-rose-400">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Pexels Modal -->
+  <div id="pexelsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="glass-card p-5 rounded-2xl max-w-md w-full space-y-3">
+      <h3 class="text-sm font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-key text-indigo-400"></i> Pexels API Key
+      </h3>
+      <p class="text-xs text-slate-400">Enter your free key from pexels.com/api to browse millions of vertical and horizontal videos.</p>
+      <input type="password" id="pexelsKeyInput" placeholder="Paste Pexels API Key..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white" />
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="btnClosePexelsModal" class="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">Cancel</button>
+        <button id="btnSavePexelsKey" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold text-white">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Working Elements -->
+  <video id="bgVideo" loop playsinline muted crossorigin="anonymous" class="hidden"></video>
+  <audio id="bgAudio" playsinline crossorigin="anonymous" class="hidden"></audio>
+
+  <script>
+    // --- State & Setup ---
+    const state = {
+      canvasWidth: 1080,
+      canvasHeight: 1920,
+      mode: 'lyrics', // 'lyrics' | 'cta'
+      lyrics: [],
+      currentLineIndex: -1,
+      groqKey: localStorage.getItem('groq_whisper_key') || '',
+      pexelsKey: localStorage.getItem('pexels_api_key') || '',
+      isPlaying: false,
+      isExporting: false,
+      audioDuration: 0,
+      currentTime: 0
+    };
+
+    const curatedVideos = [
+      { name: 'Neon City Night', url: 'https://assets.mixkit.co/videos/preview/mixkit-vertical-view-of-neon-city-lights-at-night-42240-large.mp4', thumb: 'https://images.pexels.com/photos/1519088/pexels-photo-1519088.jpeg?auto=compress&cs=tinysrgb&w=300' },
+      { name: 'Lo-Fi Sunset Clouds', url: 'https://assets.mixkit.co/videos/preview/mixkit-flying-above-clouds-at-sunset-1002-large.mp4', thumb: 'https://images.pexels.com/photos/844297/pexels-photo-844297.jpeg?auto=compress&cs=tinysrgb&w=300' },
+      { name: 'Moody Ocean Waves', url: 'https://assets.mixkit.co/videos/preview/mixkit-sea-waves-crashing-on-the-shore-41375-large.mp4', thumb: 'https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=300' }
+    ];
+
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const bgVideo = document.getElementById('bgVideo');
+    const bgAudio = document.getElementById('bgAudio');
+
+    // Audio Analyzer Setup
+    let audioCtx, analyser, audioSource, audioDest;
+    function initAudioContext() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      audioSource = audioCtx.createMediaElementSource(bgAudio);
+      audioDest = audioCtx.createMediaStreamDestination();
+      audioSource.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      analyser.connect(audioDest);
+    }
+
+    // --- Init UI ---
+    window.addEventListener('DOMContentLoaded', () => {
+      setCanvasSize(1080, 1920);
+      populateStockVideos(curatedVideos);
+      loadVideo(curatedVideos[0].url);
+
+      if (state.groqKey) {
+        document.getElementById('groqApiKey').value = state.groqKey;
+      }
+
+      const defaultLyrics = 
+`[00:00.00] Welcome to VideoForge
+[00:02.50] Upload your song and paste your lyrics
+[00:05.50] Or use AI to auto-sync timestamps
+[00:08.50] Export your video in full HD`;
+      document.getElementById('lyricsInput').value = defaultLyrics;
+      parseLyrics();
+    });
+
+    function setCanvasSize(w, h) {
+      state.canvasWidth = w;
+      state.canvasHeight = h;
+      canvas.width = w;
+      canvas.height = h;
+      const ratio = w / h;
+      canvas.style.aspectRatio = `${w} / ${h}`;
+    }
+
+    // Ratio Switchers
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ratio-btn').forEach(b => b.className = 'ratio-btn px-2 py-1.5 rounded bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700');
+        btn.className = 'ratio-btn px-2 py-1.5 rounded bg-indigo-600 text-white text-xs font-medium';
+        setCanvasSize(parseInt(btn.dataset.w), parseInt(btn.dataset.h));
+      });
+    });
+
+    // Populate Stock Footage
+    function populateStockVideos(videos) {
+      const grid = document.getElementById('stockGrid');
+      grid.innerHTML = '';
+      videos.forEach(v => {
+        const item = document.createElement('div');
+        item.className = 'relative aspect-[9/16] rounded-md overflow-hidden cursor-pointer group border border-slate-800 hover:border-indigo-500';
+        item.innerHTML = `
+          <img src="${v.thumb}" class="w-full h-full object-cover group-hover:scale-105 transition" />
+          <span class="absolute bottom-0 inset-x-0 p-1 bg-gradient-to-t from-black text-[10px] truncate text-center">${v.name}</span>
+        `;
+        item.onclick = () => loadVideo(v.url);
+        grid.appendChild(item);
+      });
+    }
+
+    function loadVideo(url) {
+      bgVideo.src = url;
+      bgVideo.load();
+    }
+
+    // Video Upload Handlers
+    document.getElementById('videoUpload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) loadVideo(URL.createObjectURL(file));
+    });
+
+    // Audio Upload Handlers
+    document.getElementById('audioUpload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        initAudioContext();
+        bgAudio.src = URL.createObjectURL(file);
+        const nameEl = document.getElementById('audioFileName');
+        nameEl.innerText = file.name;
+        nameEl.classList.remove('hidden');
+        bgAudio.onloadedmetadata = () => {
+          state.audioDuration = bgAudio.duration;
+          updateTimeDisplay();
+        };
+      }
+    });
+
+    // Mode Switching
+    const tabModeLyrics = document.getElementById('tabModeLyrics');
+    const tabModeCTA = document.getElementById('tabModeCTA');
+    const panelLyrics = document.getElementById('panelLyrics');
+    const panelCTA = document.getElementById('panelCTA');
+
+    tabModeLyrics.addEventListener('click', () => {
+      state.mode = 'lyrics';
+      tabModeLyrics.className = 'flex-1 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition';
+      tabModeCTA.className = 'flex-1 py-1.5 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition';
+      panelLyrics.classList.remove('hidden');
+      panelCTA.classList.add('hidden');
+    });
+
+    tabModeCTA.addEventListener('click', () => {
+      state.mode = 'cta';
+      tabModeCTA.className = 'flex-1 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition';
+      tabModeLyrics.className = 'flex-1 py-1.5 rounded-md text-xs font-semibold text-slate-400 hover:text-white transition';
+      panelCTA.classList.remove('hidden');
+      panelLyrics.classList.add('hidden');
+    });
+
+    // --- Groq Whisper AI Sync Engine ---
+    document.getElementById('btnAiTranscribe').addEventListener('click', async () => {
+      const key = document.getElementById('groqApiKey').value.trim();
+      const statusEl = document.getElementById('aiStatus');
+      const audioInput = document.getElementById('audioUpload');
+      const lyricsArea = document.getElementById('lyricsInput');
+
+      if (!key) {
+        alert('Please enter your Groq API key (starts with gsk_).');
+        return;
+      }
+      if (!audioInput.files || !audioInput.files[0]) {
+        alert('Please upload a song first in Step 2.');
+        return;
+      }
+
+      if (document.getElementById('chkSaveKey').checked) {
+        localStorage.setItem('groq_whisper_key', key);
+      }
+
+      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Transcribing & timing with Groq Whisper...';
+      statusEl.className = 'text-[11px] text-indigo-400 min-h-[16px]';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', audioInput.files[0]);
+        formData.append('model', 'whisper-large-v3');
+        formData.append('response_format', 'verbose_json');
+
+        const plainLyrics = lyricsArea.value.replace(/\[\d+:\d+\.?\d*\]/g, '').trim();
+        if (plainLyrics) {
+          formData.append('prompt', plainLyrics.slice(0, 250));
+        }
+
+        const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${key}` },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || 'Transcription error');
+        }
+
+        const data = await res.json();
+        const lrcFormatted = data.segments.map(seg => {
+          const m = String(Math.floor(seg.start / 60)).padStart(2, '0');
+          const s = String(Math.floor(seg.start % 60)).padStart(2, '0');
+          const ms = String(Math.floor((seg.start % 1) * 100)).padStart(2, '0');
+          return `[${m}:${s}.${ms}] ${seg.text.trim()}`;
+        }).join('\n');
+
+        lyricsArea.value = lrcFormatted;
+        parseLyrics();
+        statusEl.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Complete! Timestamps synced.';
+        statusEl.className = 'text-[11px] text-emerald-400 min-h-[16px]';
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${err.message}`;
+        statusEl.className = 'text-[11px] text-rose-400 min-h-[16px]';
+      }
+    });
+
+    // Parse Lyrics & Timestamps
+    function parseLyrics() {
+      const lines = document.getElementById('lyricsInput').value.split('\n');
+      const timeRegex = /\[(\d{2}):(\d{2})\.?(\d{0,3})\]/;
+      state.lyrics = [];
+
+      lines.forEach(line => {
+        const match = timeRegex.exec(line);
+        if (match) {
+          const min = parseInt(match[1]);
+          const sec = parseInt(match[2]);
+          const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3)) : 0;
+          const time = min * 60 + sec + ms / 1000;
+          const text = line.replace(timeRegex, '').trim();
+          if (text) state.lyrics.push({ time, text });
+        }
+      });
+      state.lyrics.sort((a, b) => a.time - b.time);
+    }
+    document.getElementById('lyricsInput').addEventListener('input', parseLyrics);
+
+    // Live Stamp Line Now
+    document.getElementById('btnStampLine').addEventListener('click', () => {
+      const cur = bgAudio.currentTime || 0;
+      const m = String(Math.floor(cur / 60)).padStart(2, '0');
+      const s = String(Math.floor(cur % 60)).padStart(2, '0');
+      const ms = String(Math.floor((cur % 1) * 100)).padStart(2, '0');
+      const stamp = `[${m}:${s}.${ms}] `;
+      
+      const area = document.getElementById('lyricsInput');
+      const start = area.selectionStart;
+      area.value = area.value.substring(0, start) + stamp + area.value.substring(start);
+      parseLyrics();
+    });
+
+    // --- Playback Controls ---
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const playIcon = document.getElementById('playIcon');
+    const seekSlider = document.getElementById('seekSlider');
+
+    btnPlayPause.addEventListener('click', () => {
+      initAudioContext();
+      if (bgAudio.paused) {
+        bgAudio.play();
+        bgVideo.play();
+        state.isPlaying = true;
+        playIcon.className = 'fa-solid fa-pause';
+      } else {
+        bgAudio.pause();
+        bgVideo.pause();
+        state.isPlaying = false;
+        playIcon.className = 'fa-solid fa-play';
+      }
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', () => {
+      bgAudio.currentTime = 0;
+      bgVideo.currentTime = 0;
+      if (state.isPlaying) {
+        bgAudio.play();
+        bgVideo.play();
+      }
+    });
+
+    bgAudio.addEventListener('timeupdate', () => {
+      state.currentTime = bgAudio.currentTime;
+      seekSlider.value = (state.currentTime / (state.audioDuration || 1)) * 100;
+      updateTimeDisplay();
+    });
+
+    seekSlider.addEventListener('input', () => {
+      const targetTime = (seekSlider.value / 100) * (state.audioDuration || 1);
+      bgAudio.currentTime = targetTime;
+      bgVideo.currentTime = targetTime;
+    });
+
+    function updateTimeDisplay() {
+      const cur = formatTime(state.currentTime);
+      const total = formatTime(state.audioDuration || 0);
+      document.getElementById('timeDisplay').innerText = `${cur} / ${total}`;
+    }
+
+    function formatTime(secs) {
+      const m = String(Math.floor(secs / 60)).padStart(2, '0');
+      const s = String(Math.floor(secs % 60)).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    // --- Canvas Drawing Loop ---
+    function renderFrame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Background Video (Scale & Crop)
+      if (bgVideo.readyState >= 2) {
+        const vRatio = bgVideo.videoWidth / bgVideo.videoHeight;
+        const cRatio = canvas.width / canvas.height;
+        let dw, dh, dx, dy;
+        if (vRatio > cRatio) {
+          dh = canvas.height;
+          dw = canvas.height * vRatio;
+          dx = (canvas.width - dw) / 2;
+          dy = 0;
+        } else {
+          dw = canvas.width;
+          dh = canvas.width / vRatio;
+          dx = 0;
+          dy = (canvas.height - dh) / 2;
+        }
+        ctx.drawImage(bgVideo, dx, dy, dw, dh);
+      } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Vignette Dimmer
+      const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width*0.2, canvas.width/2, canvas.height/2, canvas.width*0.8);
+      grad.addColorStop(0, 'rgba(0,0,0,0.2)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Audio Spectrum Visualizer
+      if (document.getElementById('chkShowVisualizer').checked && analyser) {
+        const dataArr = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArr);
+        const barWidth = (canvas.width / dataArr.length) * 1.5;
+        let bx = 0;
+        for (let i = 0; i < dataArr.length; i++) {
+          const barH = (dataArr[i] / 255) * (canvas.height * 0.12);
+          ctx.fillStyle = `rgba(99, 102, 241, ${0.3 + (dataArr[i]/255) * 0.6})`;
+          ctx.fillRect(bx, canvas.height - barH - 20, barWidth - 2, barH);
+          bx += barWidth;
+        }
+      }
+
+      // 3. Render Mode Layers
+      if (state.mode === 'lyrics') {
+        renderLyrics();
+      } else {
+        renderCTA();
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+    requestAnimationFrame(renderFrame);
+
+    // Render Lyrics
+    function renderLyrics() {
+      const curTime = bgAudio.currentTime || 0;
+      let activeIdx = -1;
+
+      for (let i = 0; i < state.lyrics.length; i++) {
+        if (curTime >= state.lyrics[i].time) {
+          activeIdx = i;
+        } else {
+          break;
+        }
+      }
+
+      if (activeIdx === -1 && state.lyrics.length > 0) activeIdx = 0;
+      if (activeIdx === -1) return;
+
+      const activeLine = state.lyrics[activeIdx];
+      const nextLine = state.lyrics[activeIdx + 1];
+      const lineDuration = nextLine ? (nextLine.time - activeLine.time) : 3.5;
+      const progress = Math.min(Math.max((curTime - activeLine.time) / lineDuration, 0), 1);
+
+      const pos = document.getElementById('selLyricPos').value;
+      const style = document.getElementById('selLyricStyle').value;
+
+      let yPos = canvas.height * 0.78;
+      if (pos === 'center') yPos = canvas.height * 0.5;
+      if (pos === 'top') yPos = canvas.height * 0.2;
+
+      ctx.save();
+      ctx.textAlign = 'center';
+      const fontSize = Math.floor(canvas.width * 0.055);
+      ctx.font = `bold ${fontSize}px sans-serif`;
+
+      if (style === 'sweep') {
+        // Karaoke Sweep Wipe
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fillText(activeLine.text, canvas.width / 2, yPos);
+
+        ctx.save();
+        const textMetrics = ctx.measureText(activeLine.text);
+        const startX = (canvas.width - textMetrics.width) / 2;
+        ctx.beginPath();
+        ctx.rect(startX, yPos - fontSize, textMetrics.width * progress, fontSize * 1.5);
+        ctx.clip();
+        ctx.fillStyle = '#67e8f9';
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 18;
+        ctx.fillText(activeLine.text, canvas.width / 2, yPos);
+        ctx.restore();
+      } else if (style === 'bounce') {
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 10;
+        ctx.fillText(activeLine.text, canvas.width / 2, yPos);
+
+        // Bouncing Ball
+        const textMetrics = ctx.measureText(activeLine.text);
+        const ballX = (canvas.width - textMetrics.width) / 2 + (textMetrics.width * progress);
+        const bounceH = Math.abs(Math.sin(progress * Math.PI * 4)) * (fontSize * 0.7);
+        ctx.beginPath();
+        ctx.arc(ballX, yPos - fontSize - bounceH, fontSize * 0.22, 0, Math.PI * 2);
+        ctx.fillStyle = '#f43f5e';
+        ctx.shadowColor = '#f43f5e';
+        ctx.shadowBlur = 12;
+        ctx.fill();
+      } else {
+        // Neon / Minimal
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#6366f1';
+        ctx.shadowBlur = 14;
+        ctx.fillText(activeLine.text, canvas.width / 2, yPos);
+      }
+
+      ctx.restore();
+    }
+
+    // Render Call To Action
+    function renderCTA() {
+      const headline = document.getElementById('ctaHeadline').value;
+      const subtitle = document.getElementById('ctaSubtitle').value;
+      const buttonText = document.getElementById('ctaButton').value;
+      const accent = document.getElementById('ctaColor').value;
+
+      const cardW = canvas.width * 0.86;
+      const cardH = canvas.height * 0.22;
+      const cardX = (canvas.width - cardW) / 2;
+      const cardY = canvas.height * 0.72;
+
+      ctx.save();
+      // Card Container
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, cardX, cardY, cardW, cardH, 24, true, true);
+
+      // Headline
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.floor(canvas.width * 0.055)}px sans-serif`;
+      ctx.fillText(headline, canvas.width / 2, cardY + cardH * 0.32);
+
+      // Subtitle
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = `${Math.floor(canvas.width * 0.034)}px sans-serif`;
+      ctx.fillText(subtitle, canvas.width / 2, cardY + cardH * 0.52);
+
+      // Action Button
+      const btnW = cardW * 0.6;
+      const btnH = cardH * 0.26;
+      const btnX = (canvas.width - btnW) / 2;
+      const btnY = cardY + cardH * 0.64;
+
+      ctx.fillStyle = accent;
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = 15;
+      roundRect(ctx, btnX, btnY, btnW, btnH, 12, true, false);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 0;
+      ctx.font = `bold ${Math.floor(canvas.width * 0.038)}px sans-serif`;
+      ctx.fillText(buttonText, canvas.width / 2, btnY + btnH * 0.68);
+      ctx.restore();
+    }
+
+    function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    // --- Direct MP4 Export Engine ---
+    document.getElementById('btnExportVideo').addEventListener('click', async () => {
+      initAudioContext();
+      const exportModal = document.getElementById('exportModal');
+      const progressBar = document.getElementById('exportProgressBar');
+      exportModal.classList.remove('hidden');
+
+      bgAudio.currentTime = 0;
+      bgVideo.currentTime = 0;
+      bgAudio.play();
+      bgVideo.play();
+
+      const canvasStream = canvas.captureStream(30);
+      const combinedTracks = [...canvasStream.getVideoTracks(), ...audioDest.stream.getAudioTracks()];
+      const combinedStream = new MediaStream(combinedTracks);
+
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')
+        ? 'video/mp4'
+        : 'video/webm';
+
+      const recorder = new MediaRecorder(combinedStream, { mimeType });
+      const chunks = [];
+
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `videoforge-export.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
+        a.click();
+        exportModal.classList.add('hidden');
+        bgAudio.pause();
+        bgVideo.pause();
+      };
+
+      recorder.start();
+
+      const duration = Math.min(bgAudio.duration || 15, 30); // export duration limit
+      const startTime = Date.now();
+
+      const progressInterval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const p = Math.min((elapsed / duration) * 100, 100);
+        progressBar.style.width = `${p}%`;
+
+        if (elapsed >= duration) {
+          clearInterval(progressInterval);
+          recorder.stop();
+        }
+      }, 200);
+
+      document.getElementById('btnCancelExport').onclick = () => {
+        clearInterval(progressInterval);
+        recorder.stop();
+        exportModal.classList.add('hidden');
+      };
+    });
+
+    // --- Pexels Modal Handlers ---
+    const pexelsModal = document.getElementById('pexelsModal');
+    document.getElementById('btnPexelsModal').onclick = () => pexelsModal.classList.remove('hidden');
+    document.getElementById('btnClosePexelsModal').onclick = () => pexelsModal.classList.add('hidden');
+    document.getElementById('btnSavePexelsKey').onclick = () => {
+      const k = document.getElementById('pexelsKeyInput').value.trim();
+      if (k) {
+        state.pexelsKey = k;
+        localStorage.setItem('pexels_api_key', k);
+      }
+      pexelsModal.classList.add('hidden');
+    };
+
+    document.getElementById('btnSearchPexels').addEventListener('click', async () => {
+      const q = document.getElementById('pexelsQuery').value.trim();
+      if (!q) return;
+      if (!state.pexelsKey) {
+        pexelsModal.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(q)}&per_page=6`, {
+          headers: { Authorization: state.pexelsKey }
+        });
+        const data = await res.json();
+        if (data.videos && data.videos.length > 0) {
+          const mapped = data.videos.map(v => ({
+            name: v.user.name || 'Stock Video',
+            url: v.video_files[0].link,
+            thumb: v.image
+          }));
+          populateStockVideos(mapped);
+        } else {
+          alert('No videos found for this search.');
+        }
+      } catch (err) {
+        alert('Pexels search error. Please check your API key.');
+      }
+    });
+  </script>
+</body>
+</html>
